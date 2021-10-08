@@ -5,7 +5,7 @@
   "name": "Light Level",
   "description": "Shows an ingame overlay with the light level for each block",
   "authors": [
-	"parzivail"
+	"parzivail", "Sqbika"
   ],
   "contact": {
 	"homepage": "https://github.com/Parzivail-Modding-Team/LightLevel",
