@@ -1,7 +1,9 @@
 package com.parzivail.lightlevel;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import net.fabricmc.fabric.api.renderer.v1.RendererAccess;
+import net.fabricmc.loader.impl.util.log.Log;
+import net.fabricmc.loader.impl.util.log.LogCategory;
+import net.fabricmc.loader.impl.util.log.LogLevel;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -9,13 +11,11 @@ import net.minecraft.client.render.*;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.*;
+import net.minecraft.world.BlockStateRaycastContext;
 import net.minecraft.world.LightType;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import java.io.Console;
+import java.util.logging.Logger;
 
 public class LLWorldRender {
     private static final VertexConsumerProvider vertConsumer;
@@ -53,17 +53,24 @@ public class LLWorldRender {
 
         RenderSystem.enablePolygonOffset();
         RenderSystem.polygonOffset(-1, -1);
-                    
 
-        for (int x = -16; x <= 16; x++)
-            for (int y = -16; y <= 2; y++)
-                for (int z = -16; z <= 16; z++) {
-                    BlockPos queryPos = player.getBlockPos().add(x, y, z);
+        Vec3f rot = camera.getRotation().toEulerXyz();
+
+        BlockPos cent = camera.getBlockPos().add(new Vec3i(Math.round(8 * Math.sin(rot.getY())),0,Math.round(8 * Math.cos(rot.getY()))));
+
+        float deg = (Math.round((360+camera.getRotation().toEulerXyzDegrees().getY())/90)%4)*90;
+
+        int n = Math.round(deg / 90) % 4;
+
+        for (int x = -8; x <= 8; x++)
+            for (int z = -8; z <= 8; z++)
+                for (int y = -8; y <= 2; y++) {
+                    BlockPos queryPos = cent.add(x, y, z);
 
                     if (!world.isTopSolid(queryPos.down(), player) || world.isTopSolid(queryPos, player))
                         continue;
 
-                    RenderLightLevel(matrices, world, f, showBothValues, s, queryPos);
+                    RenderLightLevel(matrices, world, f, showBothValues, s, queryPos, deg, n);
                 }
 
 
@@ -72,11 +79,15 @@ public class LLWorldRender {
         RenderSystem.disablePolygonOffset();
     }
 
-    private static void RenderLightLevel(MatrixStack matrices, ClientWorld world, TextRenderer f, boolean showBothValues, float s, BlockPos queryPos) {
+    private static void RenderLightLevel(MatrixStack matrices, ClientWorld world, TextRenderer f, boolean showBothValues, float s, BlockPos queryPos, float deg, int n) {
         matrices.push();
 
         matrices.translate(queryPos.getX(), queryPos.getY(), queryPos.getZ());
         matrices.multiply(new Quaternion(Vec3f.POSITIVE_X, -90, true));
+
+        matrices.translate(n == 0 || n == 1 ? 1 : 0, n == 0 || n == 3 ? -1 : 0, 0);
+        matrices.multiply(new Quaternion(Vec3f.POSITIVE_Z, deg + 180, true));
+
         matrices.scale(s, -s, s);
 
         int blockLight = world.getLightLevel(LightType.BLOCK, queryPos);
